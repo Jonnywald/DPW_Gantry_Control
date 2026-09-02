@@ -49,6 +49,7 @@ class MainWindow(QMainWindow):
         self.gcode_generator = GCodeGenerator(self.project.gcode_config)
         self.gcode_parser = GCodeParser()
         self.tool_buttons: Dict[CanvasTool, QToolButton] = {}
+        self._selected_shape: Optional[BaseShape] = None
 
         # Serial Thread Initialization
         self._init_serial_thread()
@@ -298,9 +299,11 @@ class MainWindow(QMainWindow):
         # Canvas -> MainWindow & Panels
         self.canvas_view.mouse_coords_changed.connect(self._on_mouse_coords)
         self.canvas_view.shape_selected.connect(self.shape_properties_panel.set_shape)
+        self.canvas_view.shape_selected.connect(self._on_shape_selected)
         self.canvas_view.shape_added.connect(self._on_shape_added)
         self.canvas_view.shape_modified.connect(self._on_shape_modified)
         self.canvas_view.tool_changed.connect(self._sync_active_tool_button)
+        self.canvas_view.delete_selected_requested.connect(self._on_delete_key_pressed)
 
         # Shape Properties Panel -> Canvas
         self.shape_properties_panel.property_changed.connect(self._on_shape_modified)
@@ -382,6 +385,18 @@ class MainWindow(QMainWindow):
     def _on_shape_modified(self, shape: BaseShape):
         self.canvas_view.update_shape_visuals()
         self._auto_generate_toolpaths()
+
+    @Slot(object)
+    def _on_shape_selected(self, shape):
+        """Track the currently selected shape for Delete key handling."""
+        self._selected_shape = shape
+
+    @Slot()
+    def _on_delete_key_pressed(self):
+        """Delete the currently selected shape when Delete/Backspace is pressed."""
+        if self._selected_shape is not None:
+            self._on_shape_deleted(self._selected_shape)
+            self._selected_shape = None
 
     @Slot(object)
     def _on_shape_deleted(self, shape: BaseShape):
