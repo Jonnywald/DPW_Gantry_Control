@@ -1,6 +1,6 @@
 # DPW Gantry - 2D Powder-Dispensing Gantry Controller
 
-A desktop application built with Python and **PySide6 (Qt)** designed for controlling a custom 2D powder-dispensing gantry driven by a **BigTreeTech (BTT) SKR Mini E3** running Marlin firmware over USB Serial.
+A desktop application built with Python and **PySide6 (Qt)** designed for controlling a custom 2D powder-dispensing gantry (https://www.sciencedirect.com/science/article/abs/pii/S0032591026006029) driven by a **BigTreeTech (BTT) SKR Mini E3** running Marlin firmware over USB Serial.
 
 ![DPW Gantry UI](<img width="1920" height="1020" alt="Screenshot 2026-09-02 113709" src="https://github.com/user-attachments/assets/4e75b817-7ca6-42bd-aa8b-03eb233e310e" />)
 
