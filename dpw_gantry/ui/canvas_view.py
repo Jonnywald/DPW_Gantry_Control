@@ -102,8 +102,10 @@ class CanvasView(QGraphicsView):
         self._drag_start_pos = None
         self._drawing_start_pos = None
         self._multi_points.clear()
-        for item in self._shape_items.values():
+        for item in list(self._shape_items.values()):
+            item.setVisible(False)
             self._scene.removeItem(item)
+            item.deleteLater()
         self._shape_items.clear()
         self.clear_toolpath_moves()
         self.viewport().update()
@@ -171,8 +173,15 @@ class CanvasView(QGraphicsView):
         # Remove items no longer present
         to_remove = [sid for sid in self._shape_items if sid not in current_ids]
         for sid in to_remove:
-            self._scene.removeItem(self._shape_items[sid])
+            item = self._shape_items[sid]
+            item.setVisible(False)
+            self._scene.removeItem(item)
+            item.deleteLater()
             del self._shape_items[sid]
+
+        if self._dragged_shape and self._dragged_shape.id in to_remove:
+            self._dragged_shape = None
+            self._drag_start_pos = None
 
         # Add or update
         for shape in shapes:
@@ -214,6 +223,7 @@ class CanvasView(QGraphicsView):
             event.accept()
             return
 
+        self.setFocus()
         scene_pos = self.mapToScene(event.pos())
         g_pt = self.scene_to_gantry_point(scene_pos)
 

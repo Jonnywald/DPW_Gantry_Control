@@ -7,7 +7,7 @@ import re
 from typing import List, Optional, Tuple, Dict
 import serial
 import serial.tools.list_ports
-from PySide6.QtCore import QObject, Signal, Slot, QMutex, QMutexLocker
+from PySide6.QtCore import QObject, Signal, Slot, QMutex, QMutexLocker, QCoreApplication
 
 
 class SerialState:
@@ -108,6 +108,11 @@ class SerialWorker(QObject):
             self.set_state(SerialState.CONNECTED_IDLE)
             self.connected.emit(port, baud)
             self.rx_line.emit(f"[SYSTEM] Successfully connected to {port} @ {baud} baud.")
+            try:
+                self._serial.write(b"M115\n")
+                self._serial.flush()
+            except Exception:
+                pass
         except Exception as e:
             self.set_state(SerialState.DISCONNECTED)
             self.connection_error.emit(f"Connection failed: {str(e)}")
@@ -220,6 +225,9 @@ class SerialWorker(QObject):
         self._running = True
 
         while self._running:
+            # Process queued Qt events and signals on this thread
+            QCoreApplication.processEvents()
+
             # 1. Handle MDI / Immediate commands
             while not self._mdi_queue.empty():
                 try:
@@ -252,6 +260,17 @@ class SerialWorker(QObject):
                     self.set_state(SerialState.CONNECTED_IDLE)
                     self.job_finished.emit(True)
                     self.rx_line.emit("[SYSTEM] Job completed successfully.")
+
+            # 3. Read any background/unsolicited output from Marlin when idle
+            if self._serial and self._serial.is_open and not self._is_streaming and self._mdi_queue.empty():
+                try:
+                    if self._serial.in_waiting > 0:
+                        line_bytes = self._serial.readline()
+                        rx = line_bytes.decode("utf-8", errors="replace").strip()
+                        if rx:
+                            self.rx_line.emit(rx)
+                except Exception:
+                    pass
 
             # Sleep briefly to avoid busy spinning
             time.sleep(0.005)
@@ -286,6 +305,7 @@ class SerialWorker(QObject):
             timeout = 30.0  # Allow longer for long moves/dwells
             
             while time.time() - start_time < timeout:
+                QCoreApplication.processEvents()
                 if self._abort_requested:
                     return False
 

@@ -400,6 +400,8 @@ class MainWindow(QMainWindow):
 
     @Slot(object)
     def _on_shape_deleted(self, shape: BaseShape):
+        if self._selected_shape == shape:
+            self._selected_shape = None
         if shape in self.project.shapes:
             self.project.shapes.remove(shape)
         self.canvas_view.sync_shapes(self.project.shapes)
@@ -481,19 +483,19 @@ class MainWindow(QMainWindow):
             return
         ret = QMessageBox.question(self, "Clear Canvas", "Delete all shapes from canvas?", QMessageBox.Yes | QMessageBox.No)
         if ret == QMessageBox.Yes:
+            self._selected_shape = None
             self.project.shapes.clear()
-            self.canvas_view.sync_shapes(self.project.shapes)
+            self.canvas_view.clear_all()
             self.shape_properties_panel.set_shape(None)
-            self.canvas_view.clear_toolpath_moves()
             self.gcode_preview_panel.set_gcode("")
 
     def _new_project(self):
+        self._selected_shape = None
         self.project = ProjectData()
         self.current_project_file = None
         self.canvas_view.set_bed_size(self.project.bed_width_mm, self.project.bed_height_mm, self.project.grid_spacing_mm)
-        self.canvas_view.sync_shapes(self.project.shapes)
+        self.canvas_view.clear_all()
         self.shape_properties_panel.set_shape(None)
-        self.canvas_view.clear_toolpath_moves()
         self.gcode_preview_panel.set_gcode("")
         self.setWindowTitle("DPW Gantry - Untitled Project")
 

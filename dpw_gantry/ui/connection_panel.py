@@ -107,8 +107,12 @@ class ConnectionPanel(QGroupBox):
         if self.btn_connect.text() == "Connect":
             baud = int(self.baud_combo.currentText())
             is_virtual = self.chk_virtual.isChecked()
-            port = self.port_combo.currentData() or self.port_combo.currentText()
-            self.connect_requested.emit(port, baud, is_virtual)
+            port = self.port_combo.currentData()
+            if not port:
+                import re
+                match = re.search(r"(COM\d+|/dev/\S+)", self.port_combo.currentText())
+                port = match.group(1) if match else self.port_combo.currentText()
+            self.connect_requested.emit(str(port), baud, is_virtual)
         else:
             self.disconnect_requested.emit()
 

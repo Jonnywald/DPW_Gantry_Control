@@ -8,7 +8,7 @@ from PySide6.QtGui import (
     QPainter, QPen, QBrush, QColor, QPainterPath
 )
 from PySide6.QtWidgets import (
-    QGraphicsItem, QStyleOptionGraphicsItem, QWidget
+    QGraphicsItem, QGraphicsObject, QStyleOptionGraphicsItem, QWidget
 )
 from ..core.geometry import (
     BaseShape, RectangleShape, CircleShape, PolylineShape,
@@ -94,14 +94,14 @@ class BedGraphicsItem(QGraphicsItem):
         painter.drawEllipse(QPointF(0, 0), 2.5, 2.5)
 
 
-class ShapeGraphicsItem(QGraphicsItem):
+class ShapeGraphicsItem(QGraphicsObject):
     """
     Direct visual representation of a vector shape on the bed scene.
     Coordinates map directly to Gantry (X, -Y) in scene space.
     """
 
-    def __init__(self, shape: BaseShape):
-        super().__init__()
+    def __init__(self, shape: BaseShape, parent: Optional[QGraphicsItem] = None):
+        super().__init__(parent)
         self.shape = shape
         self.setZValue(50)
         self.setAcceptedMouseButtons(Qt.NoButton)  # CanvasView handles hit-testing and dragging cleanly
@@ -190,11 +190,11 @@ class ShapeGraphicsItem(QGraphicsItem):
                 painter.drawRect(QRectF(c.x() - handle_size/2, c.y() - handle_size/2, handle_size, handle_size))
 
 
-class ToolpathOverlayItem(QGraphicsItem):
+class ToolpathOverlayItem(QGraphicsObject):
     """Renders parsed G-code toolpaths with color-coded moves (G0 rapid vs G1 dispense)."""
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent: Optional[QGraphicsItem] = None):
+        super().__init__(parent)
         self.moves: List[ParsedMove] = []
         self.setZValue(10)
         self.setAcceptedMouseButtons(Qt.NoButton)
@@ -211,14 +211,14 @@ class ToolpathOverlayItem(QGraphicsItem):
 
     def boundingRect(self) -> QRectF:
         if not self.moves:
-            return QRectF(0, 0, 0, 0)
+            return QRectF(-1.0, -1.0, 2.0, 2.0)
         xs = [m.start_pos.x for m in self.moves] + [m.end_pos.x for m in self.moves]
         ys = [m.start_pos.y for m in self.moves] + [m.end_pos.y for m in self.moves]
         if not xs or not ys:
-            return QRectF(0, 0, 0, 0)
+            return QRectF(-1.0, -1.0, 2.0, 2.0)
         min_x, max_x = min(xs), max(xs)
         min_y, max_y = min(ys), max(ys)
-        return QRectF(min_x - 5, -max_y - 5, (max_x - min_x) + 10, (max_y - min_y) + 10)
+        return QRectF(min_x - 5, -max_y - 5, max(2.0, (max_x - min_x) + 10), max(2.0, (max_y - min_y) + 10))
 
     def paint(self, painter: QPainter, option: QStyleOptionGraphicsItem, widget: Optional[QWidget] = None):
         if not self.moves:
